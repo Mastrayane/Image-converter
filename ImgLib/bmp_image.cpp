@@ -103,19 +103,33 @@ Image LoadBMP(const Path& file) {
         return {};
     }
 
-    int w, h;
-    ifs.ignore(18);
+    // Считываем заголовок BitmapFileHeader
+    BitmapFileHeader fileHeader(0, 0);
+    ifs.read(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
+    if (!ifs || fileHeader.bfType[0] != 'B' || fileHeader.bfType[1] != 'M') {
+        cerr << "Invalid BMP file header: " << file << endl;
+        return {};
+    }
 
-    ifs.read(reinterpret_cast<char*>(&w), sizeof(w));
-    ifs.read(reinterpret_cast<char*>(&h), sizeof(h));
+    // Считываем заголовок BitmapInfoHeader
+    BitmapInfoHeader infoHeader(0, 0);
+    ifs.read(reinterpret_cast<char*>(&infoHeader), sizeof(infoHeader));
+    if (!ifs || infoHeader.biSize != 40 || infoHeader.biBitCount != 24) {
+        cerr << "Unsupported BMP format: " << file << endl;
+        return {};
+    }
 
-    ifs.ignore(28);
+    int w = infoHeader.biWidth;
+    int h = abs(infoHeader.biHeight); // Высота может быть отрицательной
 
     int stride = GetBMPStride(w);
-    Image result(w, h, Color::Black()); // Исправлено на w, h
+    Image result(w, h, Color::Black());
     std::vector<char> buff(stride);
 
-    for (int y = result.GetHeight() - 1; y >= 0; --y) {
+    // Переходим к данным пикселей
+    ifs.seekg(fileHeader.bfOffBits, ios::beg);
+
+    for (int y = h - 1; y >= 0; --y) {
         Color* line = result.GetLine(y);
         ifs.read(buff.data(), stride);
 
@@ -133,5 +147,4 @@ Image LoadBMP(const Path& file) {
 
     return result;
 }
-
 }  // namespace img_lib
