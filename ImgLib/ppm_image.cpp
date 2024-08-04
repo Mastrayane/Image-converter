@@ -45,6 +45,12 @@ bool SavePPM(const Path& file, const Image& image) {
 
 Image LoadPPM(const Path& file) {
     ifstream ifs(file, ios::binary);
+    
+    // Проверка на успех открытия файла
+    if (!ifs) {
+        return {};
+    }
+
     std::string sign;
     int w, h, color_max;
 
