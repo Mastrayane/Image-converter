@@ -98,8 +98,13 @@ bool SaveBMP(const Path& file, const Image& image) {
 // напишите эту функцию
 Image LoadBMP(const Path& file) {
     ifstream ifs(file, ios::binary);
+    if (!ifs) {
+        cerr << "Failed to open file for reading: " << file << endl;
+        return {};
+    }
+
     int w, h;
-    ifs.ignore(18); // пропускаем 18 байт полей файла до информации об изображении
+    ifs.ignore(18);
 
     ifs.read(reinterpret_cast<char*>(&w), sizeof(w));
     ifs.read(reinterpret_cast<char*>(&h), sizeof(h));
@@ -107,8 +112,8 @@ Image LoadBMP(const Path& file) {
     ifs.ignore(28);
 
     int stride = GetBMPStride(w);
-    Image result(stride / 3, h, Color::Black());
-    std::vector<char> buff(w * 3);
+    Image result(w, h, Color::Black()); // Исправлено на w, h
+    std::vector<char> buff(stride);
 
     for (int y = result.GetHeight() - 1; y >= 0; --y) {
         Color* line = result.GetLine(y);
@@ -119,6 +124,11 @@ Image LoadBMP(const Path& file) {
             line[x].g = static_cast<byte>(buff[x * 3 + 1]);
             line[x].r = static_cast<byte>(buff[x * 3 + 2]);
         }
+    }
+
+    if (!ifs) {
+        cerr << "Failed to read from file: " << file << endl;
+        return {};
     }
 
     return result;
